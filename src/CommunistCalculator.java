@@ -1,9 +1,25 @@
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 
+/**
+ * CommunistCalculator.java
+ *
+ * This file is the main class file. Its purpose is to engage in communist math with ridiculously archaic notation that
+ * has no net benefit to its usage other than infuriating the user. Very epico. It does this with a lot of helper methods
+ * and a fancy algorithm that Henry thought of. Everything else is explained in context.
+ *
+ * Authors: Jack Hughes, Henry Johnson
+ *
+ * Date of Creation:11-15-20
+ */
 public class CommunistCalculator {
     //INSTANCE-DATA
     //Keeps track of total as steps progress
@@ -18,10 +34,11 @@ public class CommunistCalculator {
     private int index = 0;
     private int numBushelSize = 0;
     private String out;
+    private final String filePath;
 
     //CONSTRUCTORS
     //Empty Constructor
-    public CommunistCalculator() {
+    public CommunistCalculator(String fileName) {
         runningTotal = 0;
         communistPotatoes = "";
         operatorPotatoes = new Stack<String>();
@@ -29,24 +46,21 @@ public class CommunistCalculator {
         operatorPotatoesFlipped = new Stack<String>();
         numPotatoesFlipped = new Stack<String>();
         out = "";
+        this.filePath = (new File(".").getAbsolutePath() + fileName).replaceFirst("\\.","");
     }
 
     //METHODS
     //public double doTheMath(String americanFrenchFries): input american math as a String, output the resultant double
-    public double doTheMath(String americanFrenchFries) throws ScriptException {
-        double out = 0.0;
-        System.out.println("POSTFIX: " + this.communistPotatoes);
-        System.out.println("\nINFIX: " + americanFrenchFries);
+    private double doTheMath(String americanFrenchFries) throws ScriptException {
         ScriptEngineManager mgr = new ScriptEngineManager();
         ScriptEngine engine = mgr.getEngineByName("JavaScript");
-        out = (double) engine.eval(americanFrenchFries);
-        BigDecimal bd = new BigDecimal(Double.toString(out));
+        Double dumb = (Double) engine.eval(americanFrenchFries);
+        BigDecimal bd = new BigDecimal(Double.toString(dumb));
         bd = bd.setScale(4, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
-    //public double math(String communistPotatoes): input ur commie garbage and get a number eventually
-    //it's the only public method besides the constructor
-    public String math(String communistPotatoes) {
+    //private double math(String communistPotatoes): input ur commie garbage and get a number eventually
+    private double math(String communistPotatoes) {
         //incase some absolute maniac liked this so much they wanted to use it
         //more than once instead of burning it after verifying its functionality, never to look at it
         //ever, ever, EVERRRRRR, again.
@@ -74,23 +88,16 @@ public class CommunistCalculator {
         //MATH STARTS HERE
         double toReturn = 0.0;
         try {
-            toReturn = doTheMath(out);
+            toReturn = doTheMath(out + "+ 0.0"); //You don't wanna know...
         } catch (ScriptException e) {
-            System.out.println("Unknown Error occured.");
             e.printStackTrace();
         }
-        return "\nRESULT: " + toReturn;
+        return toReturn;
     }
-    //This evaluates a string of math and returns the result
-    private double evaluate(String expression){
-        return 0.0;
-    }
-
     //private boolean isOperator(char potato): returns true if the char is one of the accepted operators
     private boolean isOperator(char potato) {
         return potato == '+' || potato == '-' || potato == '*' || potato == '/';
     }
-
     //private double harvestPotato(String communistPotatoes): selects the next potato to harvest
     //based on commie order of operations
     private String harvestPotato(String communistPotatoes) {
@@ -98,7 +105,7 @@ public class CommunistCalculator {
 
         return nextPotato;
     }
-
+    //private String firstPotato(): gets the first potato
     private String firstPotato() {
         String onePotato;
         boolean isOnFristTater = true;
@@ -114,6 +121,7 @@ public class CommunistCalculator {
                 index++;
             }
         } while (isOnFristTater);
+
         return onePotato;
     }
     //return boolean value whether or not input is a number
@@ -193,5 +201,44 @@ public class CommunistCalculator {
         while (!numPotatoes.isEmpty()) {
             numPotatoesFlipped.push(numPotatoes.pop());
         }
+    }
+    //public double[] evaluate(): the only public method; evaluates all lines in the given .txt file and
+    // returns an array of doubles that are the results of each row
+    public double[] evaluate(){
+        String file = "";
+
+        try {
+            file = new String(Files.readAllBytes(Paths.get(this.filePath)));
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        file = file.replace("\n","#");
+        String curExpression = "";
+        int startExpression = 0;
+        int endExpression = 0;
+        ArrayList<Double>resultArr = new ArrayList<Double>();
+        for(int i = 0; i < file.length(); i++){
+            if(file.charAt(i) == '#'){
+                //Deliminator char encountered! must cut out this expression and evaluate it and store the result
+                endExpression = i;
+                curExpression = file.substring(startExpression,endExpression);
+                this.index = 0;
+                resultArr.add(this.math(curExpression));
+                //reset start index to the char after the deliminator char
+                startExpression = i + 1;
+            }
+            else if(i == file.length() -1){
+                //Last char in file, set this as the end of the currrent expression and evaluate it while storing the result
+                curExpression = file.substring(startExpression);
+                this.index = 0;
+                resultArr.add(this.math(curExpression));
+            }
+        }
+        double[] returnable = new double[resultArr.size()];
+        for(int i = 0; i < resultArr.size(); i++){
+            returnable[i] = resultArr.get(i);
+        }
+        return returnable;
     }
 }
